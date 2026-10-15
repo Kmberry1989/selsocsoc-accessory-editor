@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Accessory Editor — Selfie Social Society</title>
+<meta name="theme-color" content="#1c1a24">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <h1>🎩 Accessory Editor</h1>
+    <p class="sub">In-hand · On-head · On-back starter assets</p>
+  </div>
+  <div class="top-actions">
+    <select id="npcSelect" aria-label="NPC"></select>
+    <button id="exportBtn" class="btn">⤓ Export</button>
+    <button id="resetBtn" class="btn btn-ghost">Reset</button>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="preview-pane">
+    <canvas id="preview"></canvas>
+    <p class="hint">Drag to spin · scroll to zoom</p>
+    <div class="equipped" id="equippedBar"></div>
+  </section>
+
+  <aside class="panel">
+    <div class="tabs" id="slotTabs">
+      <button data-slot="hand" class="active">✋ Hand R</button>
+      <button data-slot="handL">🤚 Hand L</button>
+      <button data-slot="head">🎩 Head</button>
+      <button data-slot="back">🧥 Back</button>
+    </div>
+
+    <section class="lib-section">
+      <div class="row-head">
+        <h2>Library</h2>
+        <button id="newAccBtn" class="btn btn-small">+ New</button>
+      </div>
+      <div class="lib-grid" id="libGrid"></div>
+    </section>
+
+    <section class="edit-section" id="editSection" hidden>
+      <div class="row-head">
+        <h2 id="editTitle">Edit</h2>
+        <button id="dupBtn" class="btn btn-small btn-ghost">Duplicate</button>
+      </div>
+      <label class="field">Name <input id="accName" type="text" maxlength="40"></label>
+      <h3>Parts</h3>
+      <div class="parts-list" id="partsList"></div>
+      <div class="add-part">
+        <select id="partKind">
+          <option value="sphere">Sphere</option>
+          <option value="box">Box</option>
+          <option value="cylinder">Cylinder</option>
+          <option value="cone">Cone</option>
+          <option value="torus">Torus</option>
+          <option value="circle">Circle</option>
+        </select>
+        <button id="addPartBtn" class="btn btn-small">+ Part</button>
+      </div>
+      <div class="part-editor" id="partEditor" hidden>
+        <h3 id="partTitle">Part</h3>
+        <div class="sliders" id="sliders"></div>
+        <label class="field">Color <input id="partColor" type="color"></label>
+        <label class="field">Roughness <input id="partRough" type="range" min="0" max="1" step="0.05"></label>
+        <button id="delPartBtn" class="btn btn-small btn-danger">Delete part</button>
+      </div>
+    </section>
+  </aside>
+</main>
+
+<script type="module" src="editor.js"></script>
+</body>
+</html>

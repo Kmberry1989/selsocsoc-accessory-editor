@@ -1,0 +1,9 @@
+{
+  "name": "Accessory Editor — Selfie Social Society",
+  "short_name": "Accessory Editor",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#14121b",
+  "theme_color": "#1c1a24",
+  "icons": []
+}
