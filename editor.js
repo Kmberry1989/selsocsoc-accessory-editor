@@ -90,8 +90,9 @@ function tex(url) {
 const SLOT_ANCHOR = {
   hand:  [0.50, 0.72, 0.12],
   handL: [-0.50, 0.72, 0.12],
-  head:  [0, 1.68, 0],
+  head:  [0, 1.76, 0],
   back:  [0, 0, 0],
+  hair:  [0, 1.42, 0],
 };
 
 function npcById(id) { return npcs.find(n => n.id === id) || FALLBACK_NPCS.find(n => n.id === id); }
@@ -105,12 +106,12 @@ function rebuild() {
   const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.29, 0.54, 8, 20),
     new THREE.MeshStandardMaterial({ map: ot, roughness: 0.85 }));
   body.position.y = 0.66; body.castShadow = true; g.add(body);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.30, 32, 24),
+  const head = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.15, 32),
     new THREE.MeshStandardMaterial({ color: SKIN[npcId] ?? 0xc99a56, roughness: 0.7 }));
-  head.scale.z = 0.62; head.position.y = 1.42; head.castShadow = true; g.add(head);
-  const face = new THREE.Mesh(new THREE.CircleGeometry(0.26, 40),
+  head.rotation.x = Math.PI/2; head.position.y = 1.42; head.castShadow = true; g.add(head);
+  const face = new THREE.Mesh(new THREE.CircleGeometry(0.30, 40),
     new THREE.MeshBasicMaterial({ map: tex(assetBase + npc.faceUrl), transparent: true }));
-  face.position.set(0, 1.42, 0.30*0.62 + 0.006); g.add(face);
+  face.position.set(0, 1.42, 0.079); g.add(face);
   const lo = loadout[npcId] || {};
   for (const slot of Object.keys(SLOT_ANCHOR)) {
     const defId = lo[slot];

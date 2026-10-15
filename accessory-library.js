@@ -104,29 +104,29 @@ export const ACCESSORY_DEFS = [
 { id:'cape', name:'Crimson Cape', slot:'back', npc:'mayor-mayor', cape:{color:0x8f1f2e, width:0.8, length:1.05}, parts:[] },
 /* ---- hair ---- */
 { id:'hair-short', name:'Short Hair', slot:'hair', hairColor:0x4a3220, parts:[
-  {kind:'sphere', args:[0.35,20,14,0,6.2832,0,1.5708], pos:[0,0.02,0], scale:[1,0.72,1], color:0x4a3220, roughness:0.9},
+  {kind:'sphere', args:[0.37,20,14,0,6.2832,0,1.5708], pos:[0,0.02,0], scale:[1,0.72,1], color:0x4a3220, roughness:0.9},
 ]},
 { id:'hair-bob', name:'Bob Cut', slot:'hair', hairColor:0x1c1c1e, parts:[
-  {kind:'sphere', args:[0.36,20,14,0,6.2832,0,2.0], pos:[0,0.03,-0.02], scale:[1,0.85,1], color:0x1c1c1e, roughness:0.9},
+  {kind:'sphere', args:[0.38,20,14,0,6.2832,0,2.0], pos:[0,0.03,-0.02], scale:[1,0.85,1], color:0x1c1c1e, roughness:0.9},
 ]},
 { id:'hair-long', name:'Long Hair', slot:'hair', hairColor:0x5c3a1e, parts:[
-  {kind:'sphere', args:[0.36,20,14,0,6.2832,0,1.9], pos:[0,0.03,-0.02], scale:[1,0.9,1], color:0x5c3a1e, roughness:0.9},
+  {kind:'sphere', args:[0.38,20,14,0,6.2832,0,1.9], pos:[0,0.03,-0.02], scale:[1,0.9,1], color:0x5c3a1e, roughness:0.9},
   {kind:'box', args:[0.5,0.5,0.14], pos:[0,-0.28,-0.22], color:0x5c3a1e, roughness:0.9},
 ]},
 { id:'hair-curly', name:'Curly Hair', slot:'hair', hairColor:0x3a2415, parts:[
-  {kind:'sphere', args:[0.37,18,14,0,6.2832,0,1.8], pos:[0,0.06,0], scale:[1,0.8,1], color:0x3a2415, roughness:0.95},
+  {kind:'sphere', args:[0.39,18,14,0,6.2832,0,1.8], pos:[0,0.06,0], scale:[1,0.8,1], color:0x3a2415, roughness:0.95},
   {kind:'sphere', args:[0.12,12,10], pos:[0.28,0.05,0.05], color:0x3a2415, roughness:0.95},
   {kind:'sphere', args:[0.12,12,10], pos:[-0.28,0.05,0.05], color:0x3a2415, roughness:0.95},
   {kind:'sphere', args:[0.12,12,10], pos:[0,0.05,-0.28], color:0x3a2415, roughness:0.95},
 ]},
 { id:'hair-bun', name:'Hair Bun', slot:'hair', hairColor:0x8a8a8e, parts:[
-  {kind:'sphere', args:[0.35,20,14,0,6.2832,0,1.7], pos:[0,0.03,-0.01], scale:[1,0.75,1], color:0x8a8a8e, roughness:0.9},
+  {kind:'sphere', args:[0.37,20,14,0,6.2832,0,1.7], pos:[0,0.03,-0.01], scale:[1,0.75,1], color:0x8a8a8e, roughness:0.9},
   {kind:'sphere', args:[0.13,14,12], pos:[0,0.30,-0.18], color:0x8a8a8e, roughness:0.9},
 ]},
 { id:'hair-sides', name:'Balding Sides', slot:'hair', hairColor:0x9a9a9e, parts:[
   {kind:'sphere', args:[0.13,12,10], pos:[0.30,-0.02,0], scale:[0.7,0.9,0.9], color:0x9a9a9e, roughness:0.9},
   {kind:'sphere', args:[0.13,12,10], pos:[-0.30,-0.02,0], scale:[0.7,0.9,0.9], color:0x9a9a9e, roughness:0.9},
-  {kind:'sphere', args:[0.35,18,12,0,6.2832,1.2,0.7], pos:[0,0.02,-0.03], scale:[1,0.7,1], color:0x9a9a9e, roughness:0.9},
+  {kind:'sphere', args:[0.37,18,12,0,6.2832,1.2,0.7], pos:[0,0.02,-0.03], scale:[1,0.7,1], color:0x9a9a9e, roughness:0.9},
 ]},
 ];
 
