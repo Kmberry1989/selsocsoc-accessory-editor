@@ -92,7 +92,6 @@ const SLOT_ANCHOR = {
   handL: [-0.50, 0.72, 0.12],
   head:  [0, 1.76, 0],
   back:  [0, 0, 0],
-  hair:  [0, 1.42, 0],
 };
 
 function npcById(id) { return npcs.find(n => n.id === id) || FALLBACK_NPCS.find(n => n.id === id); }
