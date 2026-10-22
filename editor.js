@@ -289,6 +289,117 @@ $('exportBtn').onclick = () => {
   a.download = 'accessory-assets.json';
   a.click();
 };
+
+/* ---------- GLB export ---------- */
+// Minimal GLB 2.0 writer for a built accessory group: baked world
+// transforms, sequential triangles (no indices), one material per
+// color/roughness/side. No textures — accessories are flat colors.
+function accessoryToGLB(group) {
+  group.updateMatrixWorld(true);
+  const meshes = [];
+  group.traverse(o => { if (o.isMesh) meshes.push(o); });
+  if (!meshes.length) return null;
+  const binParts = [];
+  let byteOffset = 0;
+  const bufferViews = [];
+  const accessors = [];
+  const materials = [];
+  const matIndex = new Map();
+  const glbMeshes = [];
+  const nodes = [];
+  const pushView = (bytes) => {
+    const view = { buffer: 0, byteOffset, byteLength: bytes.byteLength };
+    bufferViews.push(view);
+    binParts.push(bytes);
+    byteOffset += bytes.byteLength;
+    return bufferViews.length - 1;
+  };
+  for (const mesh of meshes) {
+    let geo = mesh.geometry.clone().applyMatrix4(mesh.matrixWorld);
+    if (geo.index) geo = geo.toNonIndexed();
+    const pos = geo.attributes.position;
+    const nor = geo.attributes.normal;
+    if (!pos || !nor) continue;
+    const posView = pushView(new Float32Array(pos.array));
+    const norView = pushView(new Float32Array(nor.array));
+    let min = [Infinity, Infinity, Infinity], max = [-Infinity, -Infinity, -Infinity];
+    for (let i = 0; i < pos.count; i++) {
+      for (let a = 0; a < 3; a++) {
+        const v = pos.getComponent(i, a);
+        if (v < min[a]) min[a] = v;
+        if (v > max[a]) max[a] = v;
+      }
+    }
+    const posAcc = accessors.length;
+    accessors.push({ bufferView: posView, componentType: 5126, count: pos.count, type: 'VEC3', min, max });
+    const norAcc = accessors.length;
+    accessors.push({ bufferView: norView, componentType: 5126, count: nor.count, type: 'VEC3' });
+    const mat = mesh.material;
+    const col = mat.color ? [mat.color.r, mat.color.g, mat.color.b, 1] : [1, 1, 1, 1];
+    const key = col.join(',') + '|' + (mat.roughness ?? 0.6) + '|' + (mat.metalness ?? 0.05) + '|' + (mat.side ?? 0);
+    let mi = matIndex.get(key);
+    if (mi === undefined) {
+      mi = materials.length;
+      matIndex.set(key, mi);
+      const m = {
+        pbrMetallicRoughness: {
+          baseColorFactor: col,
+          metallicFactor: mat.metalness ?? 0.05,
+          roughnessFactor: mat.roughness ?? 0.6
+        }
+      };
+      if (mat.side === THREE.DoubleSide) m.doubleSided = true;
+      materials.push(m);
+    }
+    const meshIndex = glbMeshes.length;
+    glbMeshes.push({ primitives: [{ attributes: { POSITION: posAcc, NORMAL: norAcc }, material: mi }] });
+    nodes.push({ mesh: meshIndex, name: mesh.name || 'part' });
+  }
+  if (!nodes.length) return null;
+  const binLength = byteOffset;
+  const bin = new Uint8Array(binLength);
+  let at = 0;
+  for (const part of binParts) { bin.set(new Uint8Array(part.buffer, part.byteOffset, part.byteLength), at); at += part.byteLength; }
+  const json = JSON.stringify({
+    asset: { version: '2.0', generator: 'selsocsoc-accessory-editor' },
+    scene: 0, scenes: [{ nodes: nodes.map((_, i) => i) }],
+    nodes, meshes: glbMeshes, materials,
+    accessors, bufferViews, buffers: [{ byteLength: binLength }]
+  });
+  const jsonBytes = new TextEncoder().encode(json);
+  const jsonPad = (4 - (jsonBytes.length % 4)) % 4;
+  const binPad = (4 - (binLength % 4)) % 4;
+  const total = 12 + 8 + jsonBytes.length + jsonPad + 8 + binLength + binPad;
+  const out = new Uint8Array(total);
+  const dv = new DataView(out.buffer);
+  dv.setUint32(0, 0x46546C67, true); // 'glTF'
+  dv.setUint32(4, 2, true);
+  dv.setUint32(8, total, true);
+  dv.setUint32(12, jsonBytes.length + jsonPad, true);
+  dv.setUint32(16, 0x4E4F534A, true); // 'JSON'
+  out.set(jsonBytes, 20);
+  out.fill(0x20, 20 + jsonBytes.length, 20 + jsonBytes.length + jsonPad);
+  const binStart = 20 + jsonBytes.length + jsonPad;
+  dv.setUint32(binStart, binLength + binPad, true);
+  dv.setUint32(binStart + 4, 0x004E4942, true); // 'BIN'
+  out.set(bin, binStart + 8);
+  return out;
+}
+
+$('glbBtn').onclick = () => {
+  const def = library.find(d => d.id === editingId) ||
+    library.find(d => d.id === (loadout[npcId] || {})[activeSlot]);
+  if (!def) { alert('Pick or equip an accessory first.'); return; }
+  const group = buildAccessory(def, THREE);
+  const glb = accessoryToGLB(group);
+  if (!glb) { alert('Nothing to export in this accessory.'); return; }
+  const blob = new Blob([glb], { type: 'model/gltf-binary' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = def.id + '.glb';
+  a.click();
+  alert('GLB exported. Drop it in the game under assets/npc-accessories/ and point that NPC\'s accessoryGlb at it in assets/npc/manifest.json.');
+};
 $('resetBtn').onclick = () => {
   if (!confirm('Reset all edits to the starter assets?')) return;
   library = structuredClone(ACCESSORY_DEFS);
