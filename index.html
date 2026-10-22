@@ -12,10 +12,11 @@
 <header class="topbar">
   <div class="brand">
     <h1>🎩 Accessory Editor</h1>
-    <p class="sub">In-hand · On-head · On-back starter assets</p>
+    <p class="sub">Design accessories, part by part</p>
   </div>
   <div class="top-actions">
-    <select id="npcSelect" aria-label="NPC"></select>
+    <label class="char-toggle"><input id="charToggle" type="checkbox"> Preview on character</label>
+    <select id="npcSelect" aria-label="NPC" hidden></select>
     <button id="exportBtn" class="btn">⤓ Export</button>
     <button id="glbBtn" class="btn">⤓ Export GLB</button>
     <button id="resetBtn" class="btn btn-ghost">Reset</button>
@@ -26,7 +27,7 @@
   <section class="preview-pane">
     <canvas id="preview"></canvas>
     <p class="hint">Drag to spin · scroll to zoom</p>
-    <div class="equipped" id="equippedBar"></div>
+    <div class="preview-caption" id="previewCaption"></div>
   </section>
 
   <aside class="panel">

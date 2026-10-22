@@ -23,6 +23,8 @@ let living = null; // living-face handle for the previewed NPC (mouth + blinking
 let library = structuredClone(ACCESSORY_DEFS);
 let loadout = structuredClone(DEFAULT_LOADOUT);
 let activeSlot = 'hand', editingId = null, editingPart = -1;
+let charPreview = false; // the accessory itself is the subject; the character is only a fit check
+let viewCenter = new THREE.Vector3(0, 0.4, 0);
 
 // saved work
 try {
@@ -59,15 +61,15 @@ canvas.addEventListener('pointermove', e => {
   if (!dragging) return;
   rig.rotation.y += (e.clientX - lastX) * 0.012;
   camera.position.y = Math.max(0.4, Math.min(4, camera.position.y - (e.clientY - lastY) * 0.01));
-  camera.lookAt(0, 1.0, 0);
+  camera.lookAt(viewCenter);
   lastX = e.clientX; lastY = e.clientY;
 });
 canvas.addEventListener('pointerup', () => dragging = false);
 canvas.addEventListener('wheel', e => {
   e.preventDefault();
   dist = Math.max(2.5, Math.min(9, dist + e.deltaY * 0.005));
-  const d = camera.position.clone().sub(new THREE.Vector3(0,1,0)).normalize().multiplyScalar(dist);
-  camera.position.copy(new THREE.Vector3(0,1,0).add(d));
+  const d = camera.position.clone().sub(viewCenter).normalize().multiplyScalar(dist);
+  camera.position.copy(viewCenter.clone().add(d));
 }, { passive: false });
 
 function resize() {
@@ -99,6 +101,47 @@ const SLOT_ANCHOR = {
 function npcById(id) { return npcs.find(n => n.id === id) || FALLBACK_NPCS.find(n => n.id === id); }
 
 function rebuild() {
+  if (charPreview) rebuildCharacter();
+  else rebuildAccessory();
+  resize();
+}
+
+// The accessory itself, big and centered: auto-framed on the ground,
+// the part being edited highlighted. No character in the way.
+function rebuildAccessory() {
+  while (rig.children.length) rig.children.pop();
+  living = null;
+  const def = library.find(d => d.id === editingId) || library.find(d => d.slot === activeSlot) || library[0];
+  if (!def) { $('previewCaption').innerHTML = 'No accessory'; return; }
+  const acc = buildAccessory(def, THREE);
+  // Highlight the part under edit (meshes are added in parts order).
+  if (editingPart >= 0 && !def.cape) {
+    const meshes = [];
+    acc.traverse(o => { if (o.isMesh) meshes.push(o); });
+    const m = meshes[editingPart];
+    if (m && m.material && m.material.emissive) m.material.emissive.setHex(0x664411);
+  }
+  rig.add(acc);
+  acc.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(acc);
+  const size = new THREE.Vector3();
+  box.getSize(size);
+  const center = new THREE.Vector3();
+  box.getCenter(center);
+  acc.position.x -= center.x;
+  acc.position.z -= center.z;
+  acc.position.y -= box.min.y;
+  const h = Math.max(size.y, 0.2);
+  const span = Math.max(size.x, size.y, size.z, 0.2);
+  viewCenter.set(0, h / 2, 0);
+  dist = Math.min(7, Math.max(1.2, span * 1.9));
+  camera.position.set(0, h / 2 + 0.3, dist);
+  camera.lookAt(viewCenter);
+  $('previewCaption').innerHTML = def.name + ' <span>· ' + (SLOT_LABEL[def.slot] || def.slot) + ' · ' + ((def.parts || []).length + (def.cape ? 1 : 0)) + ' parts</span>';
+}
+
+// The old character view, kept only as a fit check behind the toggle.
+function rebuildCharacter() {
   while (rig.children.length) rig.children.pop();
   const npc = npcById(npcId);
   const g = new THREE.Group();
@@ -126,16 +169,11 @@ function rebuild() {
     g.add(acc);
   }
   rig.add(g);
-  renderEquipped();
-  resize();
-}
-
-function renderEquipped() {
-  const lo = loadout[npcId] || {};
-  $('equippedBar').innerHTML = Object.keys(SLOT_ANCHOR).map(s => {
-    const def = library.find(d => d.id === lo[s]);
-    return `<span class="chip">${SLOT_LABEL[s]}: <b>${def ? def.name : '—'}</b></span>`;
-  }).join('');
+  viewCenter.set(0, 1.0, 0);
+  dist = 5.2;
+  camera.position.set(0, 1.7, 5.2);
+  camera.lookAt(viewCenter);
+  $('previewCaption').innerHTML = (npc ? npc.name : npcId) + ' <span>· wearing the equipped accessories</span>';
 }
 
 (function tick() {
@@ -154,11 +192,13 @@ function renderLib() {
     b.className = 'lib-card' + (d.id === editingId ? ' active' : '');
     b.innerHTML = `<b>${d.name}</b><span>${SLOT_LABEL[d.slot] || d.slot} · ${d.parts.length + (d.cape ? 1 : 0)} parts</span>`;
     b.onclick = () => { editAccessory(d.id); };
-    const eq = document.createElement('span');
-    eq.className = 'equip';
-    eq.textContent = 'Equip';
-    eq.onclick = (e) => { e.stopPropagation(); equip(d.id); };
-    b.appendChild(eq);
+    if (charPreview) {
+      const eq = document.createElement('span');
+      eq.className = 'equip';
+      eq.textContent = 'Equip';
+      eq.onclick = (e) => { e.stopPropagation(); equip(d.id); };
+      b.appendChild(eq);
+    }
     grid.appendChild(b);
   });
 }
@@ -282,6 +322,13 @@ $('slotTabs').addEventListener('click', e => {
 });
 
 $('npcSelect').onchange = e => { npcId = e.target.value; spin = true; rebuild(); };
+$('charToggle').onchange = e => {
+  charPreview = e.target.checked;
+  $('npcSelect').hidden = !charPreview;
+  spin = true;
+  renderLib();
+  rebuild();
+};
 $('exportBtn').onclick = () => {
   const blob = new Blob([JSON.stringify({ defs: library, loadout }, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
@@ -388,7 +435,7 @@ function accessoryToGLB(group) {
 
 $('glbBtn').onclick = () => {
   const def = library.find(d => d.id === editingId) ||
-    library.find(d => d.id === (loadout[npcId] || {})[activeSlot]);
+    library.find(d => d.slot === activeSlot);
   if (!def) { alert('Pick or equip an accessory first.'); return; }
   const group = buildAccessory(def, THREE);
   const glb = accessoryToGLB(group);
@@ -433,4 +480,7 @@ async function loadNPCs() {
 }
 
 renderLib();
+// Open on the accessory itself, not a character: the first accessory is
+// selected for editing, so the preview and the edit panel show it at once.
+if (library.length && !editingId) editAccessory(library[0].id);
 loadNPCs();

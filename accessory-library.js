@@ -11,9 +11,9 @@
 export const ACCESSORY_DEFS = [
 { id:'gavel', name:'Ceremonial Gavel', slot:'hand', npc:'mayor-mayor', parts:[
   {kind:'cylinder', args:[0.022,0.026,0.42,10], pos:[0,0.1,0], rot:[0,0,0.5], color:0x8a5a34},
-  {kind:'cylinder', args:[0.055,0.055,0.16,14], pos:[0.13,0.28,0], rot:[0,0,0.5], color:0x6e4526},
-  {kind:'cylinder', args:[0.058,0.058,0.02,14], pos:[0.1,0.245,0], rot:[0,0,0.5], color:0xe4aa38, roughness:0.35},
-  {kind:'cylinder', args:[0.058,0.058,0.02,14], pos:[0.16,0.315,0], rot:[0,0,0.5], color:0xe4aa38, roughness:0.35},
+  {kind:'cylinder', args:[0.055,0.055,0.16,14], pos:[-0.101,0.284,0], rot:[0,0,-1.0708], color:0x6e4526},
+  {kind:'cylinder', args:[0.058,0.058,0.02,14], pos:[-0.171,0.246,0], rot:[0,0,-1.0708], color:0xe4aa38, roughness:0.35},
+  {kind:'cylinder', args:[0.058,0.058,0.02,14], pos:[-0.031,0.322,0], rot:[0,0,-1.0708], color:0xe4aa38, roughness:0.35},
 ]},
 { id:'flag', name:'Tour Pennant', slot:'hand', npc:'gideon', parts:[
   {kind:'cylinder', args:[0.016,0.016,0.85,8], pos:[0,0.32,0], color:0x8a6a4a, roughness:0.7},
