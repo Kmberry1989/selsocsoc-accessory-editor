@@ -90,7 +90,7 @@ function tex(url) {
 const SLOT_ANCHOR = {
   hand:  [0.50, 0.72, 0.12],
   handL: [-0.50, 0.72, 0.12],
-  head:  [0, 1.76, 0],
+  head:  [0, 2.00, 0], // follows the floated head (was 1.76)
   back:  [0, 0, 0],
 };
 
@@ -107,10 +107,10 @@ function rebuild() {
   body.position.y = 0.66; body.castShadow = true; g.add(body);
   const head = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.15, 32),
     new THREE.MeshStandardMaterial({ color: SKIN[npcId] ?? 0xc99a56, roughness: 0.7 }));
-  head.rotation.x = Math.PI/2; head.position.y = 1.42; head.castShadow = true; g.add(head);
+  head.rotation.x = Math.PI/2; head.position.y = 1.66; head.castShadow = true; g.add(head); // floats above the body, matching the game (was 1.42)
   const face = new THREE.Mesh(new THREE.CircleGeometry(0.30, 40),
     new THREE.MeshBasicMaterial({ map: tex(assetBase + npc.faceUrl), transparent: true }));
-  face.position.set(0, 1.42, 0.079); g.add(face);
+  face.position.set(0, 1.66, 0.079); g.add(face);
   const lo = loadout[npcId] || {};
   for (const slot of Object.keys(SLOT_ANCHOR)) {
     const defId = lo[slot];
