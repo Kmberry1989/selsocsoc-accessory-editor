@@ -1,6 +1,7 @@
 /* Accessory Editor — tweak, assign and create NPC accessories in 3D. */
 import * as THREE from './three.module.js';
 import { ACCESSORY_DEFS, DEFAULT_LOADOUT, SLOT_LABEL, getDef, buildAccessory } from './accessory-library.js';
+import { attachLivingFace } from './living-faces.js';
 
 const MANIFEST_URL = 'https://raw.githubusercontent.com/Kmberry1989/selsocsoc/main/assets/npc/manifest.json';
 const SKIN = {
@@ -18,6 +19,7 @@ const ASSET_BASE = 'https://raw.githubusercontent.com/Kmberry1989/selsocsoc/main
 
 const $ = id => document.getElementById(id);
 let npcs = [], npcId = 'mayor-mayor', assetBase = ASSET_BASE;
+let living = null; // living-face handle for the previewed NPC (mouth + blinking)
 let library = structuredClone(ACCESSORY_DEFS);
 let loadout = structuredClone(DEFAULT_LOADOUT);
 let activeSlot = 'hand', editingId = null, editingPart = -1;
@@ -111,6 +113,7 @@ function rebuild() {
   const face = new THREE.Mesh(new THREE.CircleGeometry(0.30, 40),
     new THREE.MeshBasicMaterial({ map: tex(assetBase + npc.faceUrl), transparent: true }));
   face.position.set(0, 1.66, 0.079); g.add(face);
+  living = attachLivingFace(g, npcId); // mouth + blinking, matching the game
   const lo = loadout[npcId] || {};
   for (const slot of Object.keys(SLOT_ANCHOR)) {
     const defId = lo[slot];
@@ -137,6 +140,7 @@ function renderEquipped() {
 
 (function tick() {
   if (spin) rig.rotation.y += 0.008;
+  if (living) living.update();
   renderer.render(scene, camera);
   requestAnimationFrame(tick);
 })();
