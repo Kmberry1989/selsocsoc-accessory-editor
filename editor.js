@@ -1,5 +1,6 @@
 /* Accessory Editor — tweak, assign and create NPC accessories in 3D. */
 import * as THREE from './three.module.js';
+import { GLTFLoader } from './GLTFLoader.js';
 import { ACCESSORY_DEFS, DEFAULT_LOADOUT, SLOT_LABEL, getDef, buildAccessory } from './accessory-library.js';
 import { attachLivingFace } from './living-faces.js';
 
@@ -25,6 +26,35 @@ const FALLBACK_NPCS = Object.keys(SKIN).map(id => ({
   outfitUrl: `assets/npc-outfits/npc-${id}-outfit-v2.png`,
 }));
 const ASSET_BASE = 'https://raw.githubusercontent.com/Kmberry1989/selsocsoc/main/';
+
+/* ---------- real game GLBs ---------- */
+// The shipped accessories are real game GLBs (assets/accessories/,
+// byte-identical copies of selsocsoc assets/npc-accessories/*.glb),
+// loaded with the game's own vendored GLTFLoader (root GLTFLoader.js
+// + utils/, import paths adapted to this repo's flat layout).
+// A def counts as "shipped" only if it is byte-for-byte the starter
+// def (JSON-equal to ACCESSORY_DEFS): user edits and custom copies
+// are drafts, and their procedural build is still shown so editing
+// feedback is not lost. A shipped def is never shown procedurally.
+const glbLoader = new GLTFLoader();
+const glbCache = new Map(); // id -> Promise<Group>
+function isShipped(def) {
+  const orig = ACCESSORY_DEFS.find(d => d.id === def.id);
+  return !!orig && JSON.stringify(orig) === JSON.stringify(def);
+}
+function loadAccessoryGLB(def) {
+  if (!glbCache.has(def.id)) {
+    const local = 'assets/accessories/' + def.id + '.glb';
+    const remote = ASSET_BASE + 'assets/npc-accessories/' + def.id + '.glb';
+    glbCache.set(def.id, new Promise((resolve, reject) => {
+      glbLoader.load(local, (gltf) => resolve(gltf.scene),
+        undefined,
+        () => glbLoader.load(remote, (gltf) => resolve(gltf.scene), undefined, reject));
+    }));
+  }
+  return glbCache.get(def.id);
+}
+let accToken = 0; // incremented per rebuild; stale async GLB loads are discarded
 
 const $ = id => document.getElementById(id);
 let npcs = [], npcId = 'mayor-mayor', assetBase = ASSET_BASE;
@@ -100,11 +130,25 @@ function tex(url) {
   return texCache[url];
 }
 
+// Game anchors, ported from selsocsoc assets/npc-roster.js (roster
+// builder tQ): HeldItemSlot is a child of the right HandSlot
+// (0.46, 0.68, 0) at local (0, -0.04, 0.14), i.e. (0.46, 0.64, 0.14)
+// in NPC-root coords; the game attaches props with slot.add(prop), so
+// the prop group origin sits exactly on the slot. HeadAccessorySlot is
+// a child of the Head group (y 1.66) at local (0, 0.27, 0), i.e.
+// (0, 1.93, 0). Previous positions (0.50, 0.72, 0.12) and y 2.00 were
+// editor-invented.
+// GAP (real assets only): the game roster has no left HeldItemSlot and
+// no back slot, and no code attaching cane.glb or cape.glb was found in
+// readable game code — so handL/back are left out of this table (the
+// fit-check loop below iterates these keys, so those items are not
+// rendered on the character) and the caption labels them unavailable,
+// rather than placing them at an invented anchor. The standalone
+// accessory view (rebuildAccessory) is unaffected: it shows the
+// accessory itself, centred, with no anchor involved.
 const SLOT_ANCHOR = {
-  hand:  [0.50, 0.72, 0.12],
-  handL: [-0.50, 0.72, 0.12],
-  head:  [0, 2.00, 0], // follows the floated head (was 1.76)
-  back:  [0, 0, 0],
+  hand:  [0.46, 0.64, 0.14],
+  head:  [0, 1.93, 0],
 };
 
 function npcById(id) { return npcs.find(n => n.id === id) || FALLBACK_NPCS.find(n => n.id === id); }
@@ -122,6 +166,25 @@ function rebuildAccessory() {
   living = null;
   const def = library.find(d => d.id === editingId) || library.find(d => d.slot === activeSlot) || library[0];
   if (!def) { $('previewCaption').innerHTML = 'No accessory'; return; }
+  // Shipped accessory: show the real game GLB, centred, auto-framed.
+  // (No procedural stand-in: a failed GLB load leaves the view empty
+  // with a warning, it does not fall back to a fake.)
+  if (isShipped(def)) {
+    const token = ++accToken;
+    $('previewCaption').innerHTML = def.name + ' <span>· ' + (SLOT_LABEL[def.slot] || def.slot) + ' · game GLB</span>';
+    loadAccessoryGLB(def).then((sceneRoot) => {
+      if (token !== accToken) return;
+      while (rig.children.length) rig.children.pop();
+      const acc = sceneRoot.clone(true);
+      acc.traverse(o => { if (o.isMesh) o.castShadow = true; });
+      frameAccessory(acc);
+    }).catch((err) => {
+      if (token !== accToken) return;
+      console.warn('Accessory Editor: could not load GLB', def.id, err);
+      $('previewCaption').innerHTML = def.name + ' <span>· game GLB failed to load</span>';
+    });
+    return;
+  }
   const acc = buildAccessory(def, THREE);
   // Highlight the part under edit (meshes are added in parts order).
   if (editingPart >= 0 && !def.cape) {
@@ -130,6 +193,12 @@ function rebuildAccessory() {
     const m = meshes[editingPart];
     if (m && m.material && m.material.emissive) m.material.emissive.setHex(0x664411);
   }
+  frameAccessory(acc, def);
+}
+
+// Centre + auto-frame a standalone accessory group (shared by the
+// procedural draft path and the async real-GLB path).
+function frameAccessory(acc, def) {
   rig.add(acc);
   acc.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(acc);
@@ -146,7 +215,9 @@ function rebuildAccessory() {
   dist = Math.min(7, Math.max(1.2, span * 1.9));
   camera.position.set(0, h / 2 + 0.3, dist);
   camera.lookAt(viewCenter);
-  $('previewCaption').innerHTML = def.name + ' <span>· ' + (SLOT_LABEL[def.slot] || def.slot) + ' · ' + ((def.parts || []).length + (def.cape ? 1 : 0)) + ' parts</span>';
+  if (def) {
+    $('previewCaption').innerHTML = def.name + ' <span>· ' + (SLOT_LABEL[def.slot] || def.slot) + ' · ' + ((def.parts || []).length + (def.cape ? 1 : 0)) + ' parts · draft preview</span>';
+  }
 }
 
 // The old character view, kept only as a fit check behind the toggle.
@@ -179,22 +250,38 @@ function rebuildCharacter() {
   face.position.set(0, 1.66, 0.079); g.add(face);
   living = attachLivingFace(g, npcId); // mouth + blinking, matching the game
   const lo = loadout[npcId] || {};
+  const fitToken = ++accToken;
   for (const slot of Object.keys(SLOT_ANCHOR)) {
     const defId = lo[slot];
     if (!defId) continue;
     const def = library.find(d => d.id === defId);
     if (!def) continue;
-    const acc = buildAccessory(def, THREE);
-    if (slot !== 'back') acc.position.set(...SLOT_ANCHOR[slot]);
-    if (slot === 'handL') acc.rotation.z = 0.06;
-    g.add(acc);
+    // Shipped def: real GLB at the real anchor. Edited draft: the
+    // procedural build at the same anchor (it is the user's draft,
+    // not presented as the game asset).
+    if (isShipped(def)) {
+      loadAccessoryGLB(def).then((sceneRoot) => {
+        if (fitToken !== accToken) return;
+        const acc = sceneRoot.clone(true);
+        acc.position.set(...SLOT_ANCHOR[slot]);
+        acc.traverse(o => { if (o.isMesh) o.castShadow = true; });
+        g.add(acc);
+      }).catch((err) => console.warn('Accessory Editor: could not load GLB', def.id, err));
+    } else {
+      const acc = buildAccessory(def, THREE);
+      acc.position.set(...SLOT_ANCHOR[slot]);
+      g.add(acc);
+    }
   }
   rig.add(g);
   viewCenter.set(0, 1.0, 0);
   dist = 5.2;
   camera.position.set(0, 1.7, 5.2);
   camera.lookAt(viewCenter);
-  $('previewCaption').innerHTML = (npc ? npc.name : npcId) + ' <span>· wearing the equipped accessories</span>';
+  const missingAnchors = [];
+  if (lo.handL) missingAnchors.push('left-hand');
+  if (lo.back) missingAnchors.push('back');
+  $('previewCaption').innerHTML = (npc ? npc.name : npcId) + ' <span>· wearing the equipped accessories</span>' + (missingAnchors.length ? ' <span>· ' + missingAnchors.join('/') + ' anchor unavailable in the game roster — not shown</span>' : '');
 }
 
 (function tick() {
@@ -454,10 +541,24 @@ function accessoryToGLB(group) {
   return out;
 }
 
-$('glbBtn').onclick = () => {
+$('glbBtn').onclick = async () => {
   const def = library.find(d => d.id === editingId) ||
     library.find(d => d.slot === activeSlot);
   if (!def) { alert('Pick or equip an accessory first.'); return; }
+  // Shipped accessory: hand back the real game GLB, not a procedural
+  // re-export of it.
+  if (isShipped(def)) {
+    try {
+      const res = await fetch('assets/accessories/' + def.id + '.glb');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = def.id + '.glb';
+      a.click();
+      return;
+    } catch (err) { console.warn('Falling back to procedural GLB export', err); }
+  }
   const group = buildAccessory(def, THREE);
   const glb = accessoryToGLB(group);
   if (!glb) { alert('Nothing to export in this accessory.'); return; }

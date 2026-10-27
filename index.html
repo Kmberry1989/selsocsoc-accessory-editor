@@ -77,5 +77,8 @@
 </main>
 
 <script type="module" src="editor.js"></script>
+<script>
+if ('serviceWorker' in navigator) { window.addEventListener('load', function() { navigator.serviceWorker.register('sw.js').catch(function() {}); }); }
+</script>
 </body>
 </html>
