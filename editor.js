@@ -138,17 +138,16 @@ function tex(url) {
 // a child of the Head group (y 1.66) at local (0, 0.27, 0), i.e.
 // (0, 1.93, 0). Previous positions (0.50, 0.72, 0.12) and y 2.00 were
 // editor-invented.
-// GAP (real assets only): the game roster has no left HeldItemSlot and
-// no back slot, and no code attaching cane.glb or cape.glb was found in
-// readable game code — so handL/back are left out of this table (the
-// fit-check loop below iterates these keys, so those items are not
-// rendered on the character) and the caption labels them unavailable,
-// rather than placing them at an invented anchor. The standalone
-// accessory view (rebuildAccessory) is unaffected: it shows the
-// accessory itself, centred, with no anchor involved.
+// User-directed 2026-10-28: handL/back are back in the fit check.
+// The game roster has no left HeldItemSlot and no back slot, so these
+// use user-approved placements: handL mirrors the right held slot,
+// back hangs behind the body from the shoulders (matching the library's
+// procedural cape centre). The standalone accessory view is unaffected.
 const SLOT_ANCHOR = {
   hand:  [0.46, 0.64, 0.14],
+  handL: [-0.46, 0.64, 0.14],
   head:  [0, 1.93, 0],
+  back:  [0, 0.55, -0.31],
 };
 
 function npcById(id) { return npcs.find(n => n.id === id) || FALLBACK_NPCS.find(n => n.id === id); }
@@ -278,10 +277,7 @@ function rebuildCharacter() {
   dist = 5.2;
   camera.position.set(0, 1.7, 5.2);
   camera.lookAt(viewCenter);
-  const missingAnchors = [];
-  if (lo.handL) missingAnchors.push('left-hand');
-  if (lo.back) missingAnchors.push('back');
-  $('previewCaption').innerHTML = (npc ? npc.name : npcId) + ' <span>· wearing the equipped accessories</span>' + (missingAnchors.length ? ' <span>· ' + missingAnchors.join('/') + ' anchor unavailable in the game roster — not shown</span>' : '');
+  $('previewCaption').innerHTML = (npc ? npc.name : npcId) + ' <span>· wearing the equipped accessories</span>';
 }
 
 (function tick() {
